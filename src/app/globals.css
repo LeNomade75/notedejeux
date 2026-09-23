@@ -1,0 +1,15 @@
+@import "tailwindcss";
+@theme {
+  --color-night: #15131f; --color-surface: #1f1b2e; --color-line: #322c47;
+  --color-ink: #ece8f5; --color-muted: #9a93b5; --color-gold: #ffb547; --color-violet: #7c6cf5;
+}
+body { background: var(--color-night); color: var(--color-ink); font-family: var(--f-body), system-ui, sans-serif; }
+.font-display { font-family: var(--f-display), system-ui, sans-serif; }
+.review-body { overflow-wrap: anywhere; line-height: 1.75; font-size: 1.05rem; max-width: 68ch; }
+.review-body > * + * { margin-top: 1rem; }
+.review-body h1, .review-body h2, .review-body h3 { font-family: var(--f-display), system-ui, sans-serif; font-weight: 700; font-size: 1.4rem; margin-top: 2rem; }
+.review-body ul { list-style: disc; padding-left: 1.4rem; }
+.review-body ol { list-style: decimal; padding-left: 1.4rem; }
+.review-body blockquote { border-left: 3px solid var(--color-line); padding-left: 1rem; color: var(--color-muted); }
+.review-body a { color: var(--color-violet); text-decoration: underline; }
+.review-body img { max-width: 100%; border-radius: 0.5rem; }
