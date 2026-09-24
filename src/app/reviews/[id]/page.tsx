@@ -6,6 +6,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import ReviewActions from "@/components/ReviewActions";
 import { MEDIA, statusLabel } from "@/lib/media";
+import { youtubeUrl } from "@/lib/youtube";
 
 const chip = "rounded-full border border-line bg-night/60 px-3 py-1 text-xs text-muted";
 
@@ -32,7 +33,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
     ...m.subs.filter(([k]) => r[k] != null).map(([k, label]) => [label, r[k] as number] as [string, number]),
     ...custom.map((c) => [c.label, c.value] as [string, number]),
   ];
-  const meta = [m.label, r.game.genre, r.game.releaseDate?.getFullYear(), r.game.platforms.slice(0, 4).join(", ")].filter(Boolean).join(" · ");
+  const meta = [m.label, r.game.channel ?? r.game.genre, r.game.releaseDate?.getFullYear(), r.game.platforms.slice(0, 4).join(", ")].filter(Boolean).join(" · ");
   const article = <div className="review-body"><Markdown>{r.body}</Markdown></div>;
 
   return (
@@ -42,10 +43,15 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
           <div aria-hidden className="absolute inset-0 scale-125 bg-cover bg-center opacity-25 blur-2xl" style={{ backgroundImage: `url(${r.game.coverUrl})` }} />
         )}
         <div className="relative flex flex-col items-center gap-6 p-6 sm:flex-row sm:items-end">
-          {r.game.coverUrl && <img src={r.game.coverUrl} alt="" className="w-36 shrink-0 rounded-xl shadow-2xl" />}
+          {r.game.coverUrl && <img src={r.game.coverUrl} alt="" className={`shrink-0 rounded-xl shadow-2xl ${r.game.youtubeId ? "w-56" : "w-36"}`} />}
           <div className="min-w-0 flex-1 text-center sm:text-left">
             <h1 className="font-display break-words text-3xl font-bold sm:text-4xl">{r.game.title}</h1>
             {meta && <p className="mt-1 text-sm text-muted">{meta}</p>}
+            {r.game.youtubeId && (
+              <a href={youtubeUrl(r.game.youtubeId)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm text-gold underline">
+                Regarder la vidéo sur YouTube ↗
+              </a>
+            )}
             <div className="mt-4 flex items-center justify-center gap-2 text-sm sm:justify-start">
               {r.user.image && <img src={r.user.image} alt="" className="h-7 w-7 rounded-full" />}
               <Link href={`/users/${r.user.id}`} className="font-medium hover:text-gold">{r.user.name}</Link>

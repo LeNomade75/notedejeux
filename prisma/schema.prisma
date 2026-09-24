@@ -19,6 +19,7 @@ enum MediaType {
   MOVIE
   SERIES
   ANIME
+  VIDEO
 }
 
 model User {
@@ -32,7 +33,7 @@ model User {
   links     ProfileLink[]
 }
 
-// Liens mis en avant sur le profil (Steam, MyAnimeList…), un seul par plateforme
+// Liens mis en avant sur le profil (Steam, MyAnimeList, YouTube…), un seul par plateforme
 model ProfileLink {
   id       String @id @default(cuid())
   userId   String
@@ -43,13 +44,15 @@ model ProfileLink {
   @@unique([userId, platform])
 }
 
-// "Game" désigne n'importe quel titre : jeu, film, série ou anime
+// "Game" désigne n'importe quel titre : jeu, film, série, anime ou vidéo YouTube
 model Game {
   id          String    @id @default(cuid())
   mediaType   MediaType @default(GAME)
   igdbId      Int?      @unique
   tmdbId      Int?
   anilistId   Int?      @unique
+  youtubeId   String?   @unique
+  channel     String?
   title       String
   coverUrl    String?
   releaseDate DateTime?

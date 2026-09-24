@@ -13,8 +13,9 @@ Only members of a specific Discord server can sign in and post. Everyone else ge
 - Stores each user's Discord ID, display name and avatar.
 
 ### Finding and adding titles
-- Four media types: **games** ([IGDB](https://www.igdb.com/), via Twitch), **movies** and **series** ([TMDB](https://www.themoviedb.org/)) and **anime** ([AniList](https://anilist.co/)). A type selector in the review form and a filter on the home page.
+- Five media types: **games** ([IGDB](https://www.igdb.com/), via Twitch), **movies** and **series** ([TMDB](https://www.themoviedb.org/)), **anime** ([AniList](https://anilist.co/)) and **YouTube videos**. A type selector in the review form and a filter on the home page.
 - Search results are shown as cards with cover, release year and platforms.
+- **YouTube videos** are a media type of their own: paste a video link and the title, channel and thumbnail are fetched through YouTube's oEmbed endpoint (no API key needed). Watch, youtu.be, shorts and live links are accepted, and the video page is linked from the review.
 - **Custom titles**: if a game is not on IGDB, add it with a title, cover image URL, genre and short description.
 - The search also returns custom games that already exist, so the same game is not created twice. The server also reuses an existing custom game when the title matches (case-insensitive).
 
@@ -42,7 +43,7 @@ When a review is published, a Discord webhook posts an embed containing:
 - **Review page**: cover header, community score (average of all reviews of the game), sub-rating bars, TL;DR, article, pros and cons, and the other reviews of the same game.
 - **"Give my review" button** on every review page, opening the form with the game already selected.
 - **Profile page** for every member: overall statistics, **statistics per media type** (games, movies, series, anime: reviews, finished, average rating, hours), a filter on their reviews, and "Mon profil" in the header to open yours.
-- **Profile links**: members can showcase their accounts (Steam, MyAnimeList, AniList, Kitsu, Letterboxd, Trakt, TMDB, IMDb, Backloggd, HowLongToBeat, PSNProfiles, Twitch) by pasting a simple link. The domain (and, where possible, the profile path) is checked against the chosen platform before saving.
+- **Profile links**: members can showcase their accounts (YouTube channel, Steam, MyAnimeList, AniList, Kitsu, Letterboxd, Trakt, TMDB, IMDb, Backloggd, HowLongToBeat, PSNProfiles, Twitch) by pasting a simple link. The domain (and, where possible, the profile path) is checked against the chosen platform before saving.
 - **Edit and delete**: the author of a review, and only the author, can edit or delete it from the review page. Editing does not post a new Discord message.
 - **Rich text editor** ([TipTap](https://tiptap.dev/)) for the article: bold, italic, headings, lists and quotes. The content is stored as Markdown.
 - Dark, gamer-style interface, responsive.
@@ -105,6 +106,7 @@ src/lib/tmdb.ts               TMDB search (movies and series)
 src/lib/anilist.ts            AniList search (anime)
 src/lib/media.ts              Media types, labels and sub-rating names
 src/lib/links.ts              Allowed platforms and link validation
+src/lib/youtube.ts            YouTube link parsing and video info (oEmbed)
 src/lib/discord.ts            Discord embed sent on publication
 src/lib/db.ts                 Prisma client
 src/app/page.tsx              Home: feed, filters, top games

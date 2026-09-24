@@ -4,15 +4,17 @@ import { z } from "zod";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { sendReviewEmbed } from "@/lib/discord";
+import { fetchYoutubeMeta } from "@/lib/youtube";
 
 const score = z.number().int().min(1).max(10).optional();
 const schema = z.object({
   game: z.object({
     id: z.string().optional(),
-    mediaType: z.enum(["GAME", "MOVIE", "SERIES", "ANIME"]).default("GAME"),
+    mediaType: z.enum(["GAME", "MOVIE", "SERIES", "ANIME", "VIDEO"]).default("GAME"),
     igdbId: z.number().int().optional(),
     tmdbId: z.number().int().optional(),
     anilistId: z.number().int().optional(),
+    youtubeId: z.string().regex(/^[A-Za-z0-9_-]{11}$/).optional(),
     title: z.string().min(1).max(200),
     coverUrl: z.string().url().optional().or(z.literal("")),
     releaseDate: z.string().optional(),
@@ -58,6 +60,17 @@ export async function POST(req: Request) {
   let game;
   if (g.id) {
     game = await prisma.game.findUnique({ where: { id: g.id } });
+  } else if (type === "VIDEO") {
+    if (!g.youtubeId) return NextResponse.json({ error: "Colle le lien d'une vidéo YouTube." }, { status: 400 });
+    game = await prisma.game.findUnique({ where: { youtubeId: g.youtubeId } });
+    if (!game) {
+      // Les infos de la vidéo sont relues côté serveur : on ne fait pas confiance au titre envoyé par le navigateur
+      const meta = await fetchYoutubeMeta(g.youtubeId);
+      if (!meta) return NextResponse.json({ error: "Vidéo introuvable, privée ou intégration désactivée." }, { status: 404 });
+      game = await prisma.game.create({
+        data: { mediaType: "VIDEO", youtubeId: g.youtubeId, title: meta.title, channel: meta.channel, coverUrl: meta.coverUrl, platforms: [], createdById: user.id },
+      });
+    }
   } else if (g.igdbId) {
     game = await prisma.game.upsert({ where: { igdbId: g.igdbId }, update: {}, create: { ...gameData, mediaType: "GAME", igdbId: g.igdbId } });
   } else if (g.tmdbId && (type === "MOVIE" || type === "SERIES")) {

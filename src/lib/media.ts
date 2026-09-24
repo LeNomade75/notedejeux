@@ -1,6 +1,6 @@
-export type MediaType = "GAME" | "MOVIE" | "SERIES" | "ANIME";
+export type MediaType = "GAME" | "MOVIE" | "SERIES" | "ANIME" | "VIDEO";
 export type SubKey = "graphics" | "gameplay" | "story" | "soundtrack";
-export const MEDIA_TYPES: MediaType[] = ["GAME", "MOVIE", "SERIES", "ANIME"];
+export const MEDIA_TYPES: MediaType[] = ["GAME", "MOVIE", "SERIES", "ANIME", "VIDEO"];
 
 // Les 4 colonnes de sous-notes sont les mêmes pour tous les types, seuls les libellés changent
 export const MEDIA: Record<MediaType, {
@@ -26,6 +26,11 @@ export const MEDIA: Record<MediaType, {
     label: "Anime", plural: "Animes", a: "un anime", source: "AniList",
     hours: "Heures de visionnage", hoursSuffix: "de visionnage", asked: "Tu as vu cet anime ?",
     subs: [["graphics", "Animation"], ["gameplay", "Personnages"], ["story", "Histoire"], ["soundtrack", "Bande-son"]],
+  },
+  VIDEO: {
+    label: "Vidéo", plural: "Vidéos", a: "une vidéo", source: "YouTube",
+    hours: "Heures de visionnage", hoursSuffix: "de visionnage", asked: "Tu as vu cette vidéo ?",
+    subs: [["graphics", "Montage"], ["gameplay", "Contenu"], ["story", "Écriture"], ["soundtrack", "Son / musique"]],
   },
 };
 

@@ -2,6 +2,7 @@ export type Platform = { id: string; label: string; domains: string[]; path?: Re
 
 // Chaque plateforme n'accepte que ses domaines et, quand c'est possible, une adresse de profil
 export const PLATFORMS: Platform[] = [
+  { id: "youtube", label: "YouTube", domains: ["youtube.com"], path: /^\/(@[^/]+|channel\/[^/]+|c\/[^/]+|user\/[^/]+)/, example: "youtube.com/@ta-chaine" },
   { id: "steam", label: "Steam", domains: ["steamcommunity.com"], path: /^\/(id|profiles)\/[^/]+/, example: "steamcommunity.com/id/pseudo" },
   { id: "backloggd", label: "Backloggd", domains: ["backloggd.com"], path: /^\/u\/[^/]+/, example: "backloggd.com/u/pseudo" },
   { id: "hltb", label: "HowLongToBeat", domains: ["howlongtobeat.com"], path: /^\/user\/[^/]+/, example: "howlongtobeat.com/user/pseudo" },
@@ -28,7 +29,8 @@ export function validateLink(platformId: string, raw: string): { ok: true; url: 
   }
   if (u.protocol !== "https:" && u.protocol !== "http:") return { ok: false, error: `${p.label} : lien non autorisé.` };
   if (u.username || u.password) return { ok: false, error: `${p.label} : lien non autorisé.` };
-  const host = u.hostname.toLowerCase().replace(/^www\./, "");
+  // "www." et "m." (version mobile) sont acceptés puis retirés
+  const host = u.hostname.toLowerCase().replace(/^(www|m)\./, "");
   if (!p.domains.includes(host)) return { ok: false, error: `${p.label} : le lien doit venir de ${p.domains[0]}.` };
   if (p.path && !p.path.test(u.pathname)) return { ok: false, error: `${p.label} : le lien doit mener à ton profil (ex : ${p.example}).` };
   // On enregistre une version nettoyée : https, sans paramètres ni ancre

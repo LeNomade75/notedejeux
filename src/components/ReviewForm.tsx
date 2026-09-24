@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import RichEditor from "./RichEditor";
 import { MEDIA, MEDIA_TYPES, statusOptions, type MediaType } from "@/lib/media";
 
-type G = { id?: string; custom?: boolean; mediaType?: MediaType; igdbId?: number; tmdbId?: number; anilistId?: number; title: string; coverUrl?: string; releaseDate?: string; platforms?: string[]; genre?: string; summary?: string };
+type G = { id?: string; custom?: boolean; mediaType?: MediaType; igdbId?: number; tmdbId?: number; anilistId?: number; youtubeId?: string; channel?: string; title: string; coverUrl?: string; releaseDate?: string; platforms?: string[]; genre?: string; summary?: string };
 type Custom = { label: string; value: number };
 export type Initial = { rating: number; status: string; hours: string; tldr: string; body: string; pros: string; cons: string; spoilers: boolean; std: Record<string, string>; cr: Custom[] };
 
@@ -90,23 +90,28 @@ export default function ReviewForm({ reviewId, initial, gameTitle, mediaType }: 
             ))}
           </div>
           <div className="flex gap-2">
-            <input className={input} value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Chercher ${MEDIA[type].a} (${MEDIA[type].source})`} />
-            <button type="button" onClick={search} className="rounded-lg bg-violet px-4">Chercher</button>
+            <input
+              className={input} value={q} onChange={(e) => setQ(e.target.value)}
+              placeholder={type === "VIDEO" ? "Colle le lien de la vidéo YouTube" : `Chercher ${MEDIA[type].a} (${MEDIA[type].source})`}
+            />
+            <button type="button" onClick={search} className="rounded-lg bg-violet px-4">{type === "VIDEO" ? "Récupérer" : "Chercher"}</button>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
             {results.map((g) => (
-              <button type="button" key={`${g.id ?? ""}${g.igdbId ?? g.tmdbId ?? g.anilistId ?? ""}`} onClick={() => setGame(g)} className="rounded-xl border border-line bg-surface p-2 text-left">
-                {g.coverUrl && <img src={g.coverUrl} alt="" className="mb-2 aspect-[3/4] w-full rounded-md object-cover" />}
+              <button type="button" key={`${g.id ?? ""}${g.igdbId ?? g.tmdbId ?? g.anilistId ?? g.youtubeId ?? ""}`} onClick={() => setGame(g)} className="rounded-xl border border-line bg-surface p-2 text-left">
+                {g.coverUrl && <img src={g.coverUrl} alt="" className={`mb-2 w-full rounded-md object-cover ${g.youtubeId ? "aspect-video" : "aspect-[3/4]"}`} />}
                 <div className="text-sm font-medium">{g.title}</div>
                 <div className="text-xs text-muted">
-                  {g.custom ? "Sur mesure" : `${g.releaseDate?.slice(0, 4) ?? ""} ${g.platforms?.slice(0, 3).join(", ") ?? ""}`}
+                  {g.custom ? "Sur mesure" : g.channel ?? `${g.releaseDate?.slice(0, 4) ?? ""} ${g.platforms?.slice(0, 3).join(", ") ?? ""}`}
                 </div>
               </button>
             ))}
           </div>
-          <button type="button" onClick={() => { setCustom(true); setGame({ title: "", mediaType: type }); }} className="text-sm text-gold underline">
-            Introuvable ? Ajouter {MEDIA[type].a} sur mesure
-          </button>
+          {type !== "VIDEO" && (
+            <button type="button" onClick={() => { setCustom(true); setGame({ title: "", mediaType: type }); }} className="text-sm text-gold underline">
+              Introuvable ? Ajouter {MEDIA[type].a} sur mesure
+            </button>
+          )}
         </section>
       )}
 
