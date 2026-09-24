@@ -1,11 +1,12 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import Markdown from "react-markdown";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import ReviewActions from "@/components/ReviewActions";
+import { MEDIA, statusLabel } from "@/lib/media";
 
-const STATUS: Record<string, string> = {
-  COMPLETED: "Terminé", IN_PROGRESS: "En cours", DROPPED: "Abandonné", PLATINUM: "100 % / Platine",
-};
-const SUB = [["graphics", "Graphismes"], ["gameplay", "Gameplay"], ["story", "Histoire"], ["soundtrack", "Bande-son"]] as const;
 const chip = "rounded-full border border-line bg-night/60 px-3 py-1 text-xs text-muted";
 
 export default async function ReviewPage({ params }: { params: Promise<{ id: string }> }) {
@@ -13,12 +14,25 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
   const r = await prisma.review.findUnique({ where: { id }, include: { game: true, user: true } });
   if (!r) notFound();
 
+  const [others, agg, session] = await Promise.all([
+    prisma.review.findMany({ where: { gameId: r.gameId, NOT: { id: r.id } }, orderBy: { createdAt: "desc" }, include: { user: true } }),
+    prisma.review.aggregate({ where: { gameId: r.gameId }, _avg: { rating: true }, _count: { _all: true } }),
+    getServerSession(authOptions),
+  ]);
+  const t = r.game.mediaType;
+  const m = MEDIA[t];
+  const myId = (session?.user as { discordId?: string } | undefined)?.discordId;
+  const isAuthor = !!myId && r.user.discordId === myId;
+  const hasMine = !!myId && (isAuthor || others.some((o) => o.user.discordId === myId));
+  const avg = agg._avg.rating ?? r.rating;
+  const count = agg._count._all;
+
   const custom = (r.customRatings as { label: string; value: number }[] | null) ?? [];
   const sub: [string, number][] = [
-    ...SUB.filter(([k]) => r[k] != null).map(([k, label]) => [label, r[k] as number] as [string, number]),
+    ...m.subs.filter(([k]) => r[k] != null).map(([k, label]) => [label, r[k] as number] as [string, number]),
     ...custom.map((c) => [c.label, c.value] as [string, number]),
   ];
-  const meta = [r.game.genre, r.game.releaseDate?.getFullYear(), r.game.platforms.slice(0, 4).join(", ")].filter(Boolean).join(" · ");
+  const meta = [m.label, r.game.genre, r.game.releaseDate?.getFullYear(), r.game.platforms.slice(0, 4).join(", ")].filter(Boolean).join(" · ");
   const article = <div className="review-body"><Markdown>{r.body}</Markdown></div>;
 
   return (
@@ -34,12 +48,12 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
             {meta && <p className="mt-1 text-sm text-muted">{meta}</p>}
             <div className="mt-4 flex items-center justify-center gap-2 text-sm sm:justify-start">
               {r.user.image && <img src={r.user.image} alt="" className="h-7 w-7 rounded-full" />}
-              <span className="font-medium">{r.user.name}</span>
+              <Link href={`/users/${r.user.id}`} className="font-medium hover:text-gold">{r.user.name}</Link>
               <span className="text-muted">le {r.createdAt.toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}</span>
             </div>
             <div className="mt-3 flex flex-wrap justify-center gap-2 sm:justify-start">
-              <span className={chip}>{STATUS[r.status]}</span>
-              {r.hoursPlayed ? <span className={chip}>{r.hoursPlayed} h de jeu</span> : null}
+              <span className={chip}>{statusLabel(t, r.status)}</span>
+              {r.hoursPlayed ? <span className={chip}>{r.hoursPlayed} h {m.hoursSuffix}</span> : null}
               {r.spoilers && <span className={`${chip} text-gold`}>Spoilers</span>}
             </div>
           </div>
@@ -49,6 +63,16 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
           </div>
         </div>
       </header>
+
+      {isAuthor && <ReviewActions id={r.id} />}
+
+      <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-line bg-surface px-5 py-3">
+        <span className="text-sm text-muted">Note globale de la communauté</span>
+        <span>
+          <b className="font-display text-2xl text-gold">{avg.toFixed(1)}</b>
+          <span className="text-muted"> /10 · {count} avis</span>
+        </span>
+      </div>
 
       {sub.length > 0 && (
         <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -97,6 +121,39 @@ export default async function ReviewPage({ params }: { params: Promise<{ id: str
           )}
         </div>
       )}
+
+      <section className="mt-12 border-t border-line pt-8">
+        <h2 className="font-display text-2xl font-bold">Autres avis sur {r.game.title}</h2>
+
+        {myId && !hasMine && (
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-violet/50 bg-surface p-5">
+            <p>{m.asked} Donne ton avis.</p>
+            <Link href={`/reviews/new?gameId=${r.gameId}`} className="rounded-lg bg-violet px-4 py-2 font-medium">Donner mon avis</Link>
+          </div>
+        )}
+        {!myId && <p className="mt-4 text-sm text-muted">Connecte-toi avec Discord pour donner ton avis.</p>}
+
+        {others.length === 0 ? (
+          <p className="mt-4 text-muted">Aucun autre avis pour l'instant.</p>
+        ) : (
+          <div className="mt-4 space-y-3">
+            {others.map((o) => (
+              <Link key={o.id} href={`/reviews/${o.id}`} className="flex gap-3 rounded-xl border border-line bg-surface p-4">
+                {o.user.image && <img src={o.user.image} alt="" className="h-10 w-10 shrink-0 rounded-full" />}
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{o.user.name}</span>
+                    <span className="font-display text-xl font-bold text-gold">{o.rating}<span className="text-xs text-muted">/10</span></span>
+                  </div>
+                  <p className="mt-1 line-clamp-3 break-words text-sm text-muted">
+                    {o.spoilers ? "Cet avis contient des spoilers." : o.tldr ?? o.body}
+                  </p>
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
     </article>
   );
 }

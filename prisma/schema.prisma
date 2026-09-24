@@ -14,19 +14,42 @@ enum Status {
   PLATINUM
 }
 
-model User {
-  id        String   @id @default(cuid())
-  discordId String   @unique
-  name      String
-  image     String?
-  createdAt DateTime @default(now())
-  reviews   Review[]
-  games     Game[]
+enum MediaType {
+  GAME
+  MOVIE
+  SERIES
+  ANIME
 }
 
+model User {
+  id        String        @id @default(cuid())
+  discordId String        @unique
+  name      String
+  image     String?
+  createdAt DateTime      @default(now())
+  reviews   Review[]
+  games     Game[]
+  links     ProfileLink[]
+}
+
+// Liens mis en avant sur le profil (Steam, MyAnimeList…), un seul par plateforme
+model ProfileLink {
+  id       String @id @default(cuid())
+  userId   String
+  platform String
+  url      String
+  user     User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platform])
+}
+
+// "Game" désigne n'importe quel titre : jeu, film, série ou anime
 model Game {
   id          String    @id @default(cuid())
+  mediaType   MediaType @default(GAME)
   igdbId      Int?      @unique
+  tmdbId      Int?
+  anilistId   Int?      @unique
   title       String
   coverUrl    String?
   releaseDate DateTime?
@@ -37,28 +60,30 @@ model Game {
   createdById String?
   createdBy   User?     @relation(fields: [createdById], references: [id])
   reviews     Review[]
+
+  @@unique([mediaType, tmdbId])
 }
 
 model Review {
-  id          String   @id @default(cuid())
-  gameId      String
-  userId      String
-  rating      Int
-  graphics    Int?
-  gameplay    Int?
-  story       Int?
-  soundtrack  Int?
+  id            String   @id @default(cuid())
+  gameId        String
+  userId        String
+  rating        Int
+  graphics      Int?
+  gameplay      Int?
+  story         Int?
+  soundtrack    Int?
   customRatings Json?
-  status      Status
-  hoursPlayed Int?
-  tldr        String?
-  body        String
-  pros        String[]
-  cons        String[]
-  spoilers    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  game        Game     @relation(fields: [gameId], references: [id])
-  user        User     @relation(fields: [userId], references: [id])
+  status        Status
+  hoursPlayed   Int?
+  tldr          String?
+  body          String
+  pros          String[]
+  cons          String[]
+  spoilers      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  game          Game     @relation(fields: [gameId], references: [id])
+  user          User     @relation(fields: [userId], references: [id])
 
   @@unique([gameId, userId])
 }

@@ -5,6 +5,7 @@
 }
 body { background: var(--color-night); color: var(--color-ink); font-family: var(--f-body), system-ui, sans-serif; }
 .font-display { font-family: var(--f-display), system-ui, sans-serif; }
+
 .review-body { overflow-wrap: anywhere; line-height: 1.75; font-size: 1.05rem; max-width: 68ch; }
 .review-body > * + * { margin-top: 1rem; }
 .review-body h1, .review-body h2, .review-body h3 { font-family: var(--f-display), system-ui, sans-serif; font-weight: 700; font-size: 1.4rem; margin-top: 2rem; }
@@ -13,3 +14,4 @@ body { background: var(--color-night); color: var(--color-ink); font-family: var
 .review-body blockquote { border-left: 3px solid var(--color-line); padding-left: 1rem; color: var(--color-muted); }
 .review-body a { color: var(--color-violet); text-decoration: underline; }
 .review-body img { max-width: 100%; border-radius: 0.5rem; }
+.editor-body { max-width: none; }

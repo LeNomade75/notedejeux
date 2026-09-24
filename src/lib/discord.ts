@@ -1,6 +1,8 @@
+import { MEDIA } from "./media";
+
 type Args = {
   id: string; rating: number; tldr?: string | null; body: string; pros: string[]; cons: string[]; spoilers: boolean;
-  game: { title: string; coverUrl?: string | null };
+  game: { title: string; coverUrl?: string | null; mediaType?: string };
   user: { name: string; image?: string | null };
 };
 
@@ -12,6 +14,7 @@ export async function sendReviewEmbed(r: Args) {
   let excerpt = r.tldr || r.body.replace(/[#*_>`]/g, "").slice(0, 300) + (r.body.length > 300 ? "…" : "");
   if (r.spoilers) excerpt = `⚠️ Contient des spoilers\n||${excerpt}||`;
   const list = (a: string[]) => a.map((x) => `• ${x}`).join("\n");
+  const kind = (MEDIA as Record<string, { label: string }>)[r.game.mediaType ?? "GAME"]?.label ?? "Jeu";
 
   const fields = [
     { name: "Note", value: `${"⭐".repeat(stars)}${"☆".repeat(5 - stars)} — **${r.rating}/10**` },
@@ -31,6 +34,7 @@ export async function sendReviewEmbed(r: Args) {
         author: { name: r.user.name, icon_url: r.user.image ?? undefined },
         thumbnail: r.game.coverUrl ? { url: r.game.coverUrl } : undefined,
         fields,
+        footer: { text: kind },
         timestamp: new Date().toISOString(),
       }],
     }),

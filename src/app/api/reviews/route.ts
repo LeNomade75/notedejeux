@@ -8,7 +8,11 @@ import { sendReviewEmbed } from "@/lib/discord";
 const score = z.number().int().min(1).max(10).optional();
 const schema = z.object({
   game: z.object({
+    id: z.string().optional(),
+    mediaType: z.enum(["GAME", "MOVIE", "SERIES", "ANIME"]).default("GAME"),
     igdbId: z.number().int().optional(),
+    tmdbId: z.number().int().optional(),
+    anilistId: z.number().int().optional(),
     title: z.string().min(1).max(200),
     coverUrl: z.string().url().optional().or(z.literal("")),
     releaseDate: z.string().optional(),
@@ -36,8 +40,11 @@ export async function POST(req: Request) {
   if (!user) return NextResponse.json({ error: "Utilisateur inconnu" }, { status: 401 });
 
   const parsed = schema.safeParse(await req.json());
-  if (!parsed.success) return NextResponse.json({ error: "Formulaire invalide : " + parsed.error.issues.map((i) => `${i.path.join(".")} (${i.message})`).join(", ") }, { status: 400 });
+  if (!parsed.success) {
+    return NextResponse.json({ error: "Formulaire invalide : " + parsed.error.issues.map((i) => `${i.path.join(".")} (${i.message})`).join(", ") }, { status: 400 });
+  }
   const { game: g, ...data } = parsed.data;
+  const type = g.mediaType;
 
   const gameData = {
     title: g.title,
@@ -47,16 +54,34 @@ export async function POST(req: Request) {
     genre: g.genre,
     summary: g.summary,
   };
-  const game = g.igdbId
-    ? await prisma.game.upsert({ where: { igdbId: g.igdbId }, update: {}, create: { igdbId: g.igdbId, ...gameData } })
-    : await prisma.game.create({ data: { ...gameData, custom: true, createdById: user.id } });
+
+  let game;
+  if (g.id) {
+    game = await prisma.game.findUnique({ where: { id: g.id } });
+  } else if (g.igdbId) {
+    game = await prisma.game.upsert({ where: { igdbId: g.igdbId }, update: {}, create: { ...gameData, mediaType: "GAME", igdbId: g.igdbId } });
+  } else if (g.tmdbId && (type === "MOVIE" || type === "SERIES")) {
+    game = await prisma.game.upsert({
+      where: { mediaType_tmdbId: { mediaType: type, tmdbId: g.tmdbId } },
+      update: {},
+      create: { ...gameData, mediaType: type, tmdbId: g.tmdbId },
+    });
+  } else if (g.anilistId) {
+    game = await prisma.game.upsert({ where: { anilistId: g.anilistId }, update: {}, create: { ...gameData, mediaType: "ANIME", anilistId: g.anilistId } });
+  } else {
+    // Titre sur mesure : on réutilise celui qui existe déjà (même type, même titre)
+    game =
+      (await prisma.game.findFirst({ where: { custom: true, mediaType: type, title: { equals: g.title.trim(), mode: "insensitive" } } })) ??
+      (await prisma.game.create({ data: { ...gameData, mediaType: type, custom: true, createdById: user.id } }));
+  }
+  if (!game) return NextResponse.json({ error: "Titre introuvable" }, { status: 404 });
 
   try {
     const review = await prisma.review.create({ data: { ...data, gameId: game.id, userId: user.id } });
     await sendReviewEmbed({ ...review, game, user });
     return NextResponse.json({ id: review.id }, { status: 201 });
   } catch (e: any) {
-    if (e.code === "P2002") return NextResponse.json({ error: "Tu as déjà publié un avis pour ce jeu." }, { status: 409 });
+    if (e.code === "P2002") return NextResponse.json({ error: "Tu as déjà publié un avis pour ce titre." }, { status: 409 });
     throw e;
   }
 }
